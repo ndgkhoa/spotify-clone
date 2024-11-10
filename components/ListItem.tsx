@@ -24,7 +24,7 @@ const ListItem: React.FC<ListItemProps> = ({ image, name, href }) => {
                     className="object-cover"
                     fill
                     src="/images/liked.png"
-                    alt="Liked"
+                    alt="list item"
                 />
             </div>
             <p className="font-medium truncate py-5">{name}</p>
