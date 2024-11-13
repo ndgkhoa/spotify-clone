@@ -40,7 +40,11 @@ export interface Price {
     interval_count?: number
     trial_period_days?: number | null
     metadata: Stripe.Metadata
-    product?: Product
+    products?: Product
+}
+
+export interface ProductWithPrice extends Product {
+    prices?: Price[]
 }
 
 export interface Subscription {

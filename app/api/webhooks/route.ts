@@ -28,11 +28,18 @@ export async function POST(request: Request) {
     try {
         if (!sig || !webhookSecret) return
         event = stripe.webhooks.constructEvent(body, sig, webhookSecret)
-    } catch (error: any) {
-        console.log('Error message:' + error.message)
-        return new NextResponse(`Webhook Error: ${error.message}`, {
-            status: 400,
-        })
+    } catch (error) {
+        if (error instanceof Error) {
+            console.log('Error message: ' + error.message)
+        } else {
+            console.log('Unexpected error', error)
+        }
+        return new NextResponse(
+            `Webhook Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            {
+                status: 400,
+            },
+        )
     }
 
     if (relevantEvents.has(event.type)) {
@@ -61,6 +68,7 @@ export async function POST(request: Request) {
                         event.type === 'customer.subscription.created',
                     )
                     break
+
                 case 'checkout.session.completed':
                     const checkoutSession = event.data
                         .object as Stripe.Checkout.Session
@@ -78,7 +86,11 @@ export async function POST(request: Request) {
                     throw new Error('Unhandled relevant event!')
             }
         } catch (error) {
-            console.log(error)
+            if (error instanceof Error) {
+                console.log('Error in event handling:', error.message)
+            } else {
+                console.log('Unexpected error in event handling:', error)
+            }
             return new NextResponse('Webhook error', { status: 400 })
         }
     }

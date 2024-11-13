@@ -16,44 +16,21 @@ interface PlayerContentProps {
     songUrl: string
 }
 
+const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${minutes}:${secs < 10 ? '0' : ''}${secs}`
+}
+
 const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
     const player = usePlayer()
     const [volume, setVolume] = useState(1)
     const [isPlaying, setIsPlaying] = useState(false)
+    const [currentTime, setCurrentTime] = useState(0)
+    const [duration, setDuration] = useState(0)
+
     const Icon = isPlaying ? BsPauseFill : BsPlayFill
     const VolumeIcon = volume === 0 ? HiSpeakerXMark : HiSpeakerWave
-
-    const onPlayNext = () => {
-        if (player.ids.length === 0) {
-            return
-        }
-
-        const currentIndex = player.ids.findIndex(
-            (id) => id === player.activeId,
-        )
-        const nextSong = player.ids[currentIndex + 1]
-
-        if (!nextSong) {
-            return player.setId(player.ids[0])
-        }
-        player.setId(nextSong)
-    }
-
-    const onPlayPrevious = () => {
-        if (player.ids.length === 0) {
-            return
-        }
-
-        const currentIndex = player.ids.findIndex(
-            (id) => id === player.activeId,
-        )
-        const previousSong = player.ids[currentIndex - 1]
-
-        if (!previousSong) {
-            return player.setId(player.ids[player.ids.length - 1])
-        }
-        player.setId(previousSong)
-    }
 
     const [play, { pause, sound }] = useSound(songUrl, {
         volume: volume,
@@ -66,9 +43,41 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
         format: ['mp3'],
     })
 
+    const onPlayNext = () => {
+        if (player.ids.length === 0) return
+
+        const currentIndex = player.ids.findIndex(
+            (id) => id === player.activeId,
+        )
+        const nextSong = player.ids[currentIndex + 1] || player.ids[0]
+        player.setId(nextSong)
+    }
+
+    const onPlayPrevious = () => {
+        if (player.ids.length === 0) return
+
+        const currentIndex = player.ids.findIndex(
+            (id) => id === player.activeId,
+        )
+        const previousSong =
+            player.ids[currentIndex - 1] || player.ids[player.ids.length - 1]
+        player.setId(previousSong)
+    }
+
+    useEffect(() => {
+        if (sound) {
+            setDuration(sound.duration() || 0)
+
+            const interval = setInterval(() => {
+                setCurrentTime(sound.seek() || 0)
+            }, 1000)
+
+            return () => clearInterval(interval)
+        }
+    }, [sound])
+
     useEffect(() => {
         sound?.play()
-
         return () => sound?.unload()
     }, [sound])
 
@@ -81,11 +90,7 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
     }
 
     const toggleMute = () => {
-        if (volume === 0) {
-            setVolume(1)
-        } else {
-            setVolume(0)
-        }
+        setVolume(volume === 0 ? 1 : 0)
     }
 
     return (
@@ -99,7 +104,7 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
 
             <div className="flex md:hidden col-auto w-full justify-end items-center">
                 <div
-                    onClick={() => {}}
+                    onClick={handlePlay}
                     className="h-10 w-10 flex items-center justify-center rounded-full bg-white p-1 cursor-pointer"
                 >
                     <Icon size={30} className="text-black" />
@@ -108,7 +113,7 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
 
             <div className="hidden h-full md:flex justify-center items-center w-full max-w-[722px] gap-x-6">
                 <AiFillStepBackward
-                    onClick={onPlayNext}
+                    onClick={onPlayPrevious}
                     size={30}
                     className="text-neutral-400 cursor-pointer hover:text-white transition"
                 />
@@ -119,13 +124,16 @@ const PlayerContent: React.FC<PlayerContentProps> = ({ song, songUrl }) => {
                     <Icon size={30} className="text-black" />
                 </div>
                 <AiFillStepForward
-                    onClick={onPlayPrevious}
+                    onClick={onPlayNext}
                     size={30}
                     className="text-neutral-400 cursor-pointer hover:text-white transition"
                 />
             </div>
 
-            <div className="hidden md:flex w-full justify-end pr-2">
+            <div className="hidden md:flex w-full justify-end pr-2 items-center gap-x-4">
+                <span className="text-white text-sm">
+                    {formatTime(currentTime)} / {formatTime(duration)}
+                </span>
                 <div className="flex items-center gap-x-2 w-[120px]">
                     <VolumeIcon
                         onClick={toggleMute}

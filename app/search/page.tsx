@@ -1,16 +1,30 @@
-import getSongsByTitle from '@/actions/getSongsByTitle'
+'use client'
+
+import { useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import Header from '@/components/Header'
 import SearchInput from '@/components/SearchInput'
 import SearchContent from './components/SearchContent'
+import Box from '@/components/Box'
+import { ClipLoader } from 'react-spinners'
 
-interface SearchProps {
-    searchParams: {
-        title: string
-    }
-}
+const Search = () => {
+    const searchParams = useSearchParams()
+    const title = searchParams.get('title') || ''
+    const [songs, setSongs] = useState([])
+    const [loading, setLoading] = useState(true)
 
-const Search: React.FC<SearchProps> = async ({ searchParams }: SearchProps) => {
-    const songs = await getSongsByTitle(searchParams.title)
+    useEffect(() => {
+        const fetchSongs = async () => {
+            setLoading(true)
+            const response = await fetch(`/api/get-songs?title=${title}`)
+            const data = await response.json()
+            setSongs(data)
+            setLoading(false)
+        }
+
+        fetchSongs()
+    }, [title])
 
     return (
         <div className="bg-neutral-900 rounded-lg h-full w-full overflow-hidden overflow-y-auto">
@@ -22,7 +36,14 @@ const Search: React.FC<SearchProps> = async ({ searchParams }: SearchProps) => {
                     <SearchInput />
                 </div>
             </Header>
-            <SearchContent songs={songs} />
+
+            {loading ? (
+                <Box className="h-[500px] flex items-center justify-center">
+                    <ClipLoader color="#22c55e" size={40} />
+                </Box>
+            ) : (
+                <SearchContent songs={songs} />
+            )}
         </div>
     )
 }
